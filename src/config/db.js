@@ -1,36 +1,14 @@
-// const { Pool } = require('pg');
+const mongoose = require("mongoose");
 
-// const pool = new Pool({
-//   connectionString: process.env.DATABASE_URL,
-//   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-// });
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
 
-// pool.on('connect', () => {
-//   console.log('✅ Connected to PostgreSQL database');
-// });
+    console.log("MongoDB Connected");
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
+  }
+};
 
-// pool.on('error', (err) => {
-//   console.error('❌ Database error:', err);
-//   process.exit(-1);
-// });
-
-// module.exports = pool;
-const { Pool } = require('pg');
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('localhost')
-    ? false
-    : { rejectUnauthorized: false },
-});
-
-pool.on('connect', () => {
-  console.log('✅ Connected to PostgreSQL database');
-});
-
-pool.on('error', (err) => {
-  console.error('❌ Database error:', err);
-  process.exit(-1);
-});
-
-module.exports = pool;
+module.exports = connectDB;
