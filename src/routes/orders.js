@@ -273,15 +273,15 @@
 // });
 
 // module.exports = router;
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const Order = require('../models/Order');
-const Product = require('../models/Product');
-const Transaction = require('../models/Transaction');
-const { authMiddleware } = require('../middleware/auth');
-const moolreService = require('../services/moolre');
+const Order = require("../models/Order");
+const Product = require("../models/Product");
+const Transaction = require("../models/Transaction");
+const { authMiddleware } = require("../middleware/auth");
+const moolreService = require("../services/moolre");
 
 // Generate order number
 const generateOrderNumber = () => {
@@ -290,13 +290,12 @@ const generateOrderNumber = () => {
   return `NG${timestamp}${random}`;
 };
 
-
 // ========================
 // CREATE ORDER + PAYMENT
 // ========================
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
   const session = await mongoose.startSession();
-
+   console.log("ORDER BODY:", req.body);
   try {
     session.startTransaction();
 
@@ -305,23 +304,30 @@ router.post('/', async (req, res) => {
       recipient_number,
       payment_number,
       payment_network,
-      customer_email
+      customer_email,
     } = req.body;
-
-    if (!product_id || !recipient_number || !payment_number || !payment_network) {
+     if (
+      !product_id ||
+      !recipient_number ||
+      !payment_number ||
+      !payment_network
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields'
+        message: "Missing required fields",
       });
     }
 
     // Validate Ghana numbers
     const ghPhoneRegex = /^0[0-9]{9}$/;
 
-    if (!ghPhoneRegex.test(recipient_number) || !ghPhoneRegex.test(payment_number)) {
+    if (
+      !ghPhoneRegex.test(recipient_number) ||
+      !ghPhoneRegex.test(payment_number)
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid phone number format'
+        message: "Invalid phone number format",
       });
     }
 
@@ -332,27 +338,32 @@ router.post('/', async (req, res) => {
       await session.abortTransaction();
       return res.status(404).json({
         success: false,
-        message: 'Product not found or unavailable'
+        message: "Product not found or unavailable",
       });
     }
 
     const orderNumber = generateOrderNumber();
 
     // Create order
-    const order = await Order.create([{
-      order_number: orderNumber,
-      product_id: product._id,
-      product_snapshot: product.toObject(),
-      recipient_number,
-      payment_number,
-      payment_network: payment_network.toUpperCase(),
-      amount: product.price,
-      customer_email: customer_email || null,
-      ip_address: req.ip,
-      status: 'pending',
-      payment_status: 'pending',
-      delivery_status: 'pending'
-    }], { session });
+    const order = await Order.create(
+      [
+        {
+          order_number: orderNumber,
+          product_id: product._id,
+          product_snapshot: product.toObject(),
+          recipient_number,
+          payment_number,
+          payment_network: payment_network.toUpperCase(),
+          amount: product.price,
+          customer_email: customer_email || null,
+          ip_address: req.ip,
+          status: "pending",
+          payment_status: "pending",
+          delivery_status: "pending",
+        },
+      ],
+      { session },
+    );
 
     const createdOrder = order[0];
 
@@ -363,32 +374,37 @@ router.post('/', async (req, res) => {
       network: payment_network,
       reference: createdOrder._id.toString(),
       orderNumber,
-      description: `Payment for ${product.name} - NetGH`
+      description: `Payment for ${product.name} - NetGH`,
     });
 
     if (!paymentResult.success) {
       await session.abortTransaction();
       return res.status(402).json({
         success: false,
-        message: paymentResult.message || 'Payment initiation failed'
+        message: paymentResult.message || "Payment initiation failed",
       });
     }
 
     // Update order
     createdOrder.payment_reference = paymentResult.reference;
-    createdOrder.payment_status = 'initiated';
+    createdOrder.payment_status = "initiated";
     await createdOrder.save({ session });
 
     // Transaction log
-    await Transaction.create([{
-      order_id: createdOrder._id,
-      type: 'payment',
-      amount: product.price,
-      gateway: 'moolre',
-      gateway_reference: paymentResult.reference,
-      status: 'initiated',
-      gateway_response: paymentResult
-    }], { session });
+    await Transaction.create(
+      [
+        {
+          order_id: createdOrder._id,
+          type: "payment",
+          amount: product.price,
+          gateway: "moolre",
+          gateway_reference: paymentResult.reference,
+          status: "initiated",
+          gateway_response: paymentResult,
+        },
+      ],
+      { session },
+    );
 
     await session.commitTransaction();
     session.endSession();
@@ -400,61 +416,54 @@ router.post('/', async (req, res) => {
         order_number: orderNumber,
         amount: product.price,
         payment_reference: paymentResult.reference,
-        message: paymentResult.message || 'Payment prompt sent',
-        status: 'pending'
-      }
+        message: paymentResult.message || "Payment prompt sent",
+        status: "pending",
+      },
     });
-
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
 
-    console.error('Create order error:', err);
+    console.error("Create order error:", err);
     res.status(500).json({
       success: false,
-      message: 'Failed to create order'
+      message: "Failed to create order",
     });
   }
 });
 
-
 // ========================
 // ORDER STATUS
 // ========================
-router.get('/:id/status', async (req, res) => {
+router.get("/:id/status", async (req, res) => {
   try {
     const order = await Order.findOne({
-      $or: [
-        { _id: req.params.id },
-        { order_number: req.params.id }
-      ]
-    }).populate('product_id');
+      $or: [{ _id: req.params.id }, { order_number: req.params.id }],
+    }).populate("product_id");
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: 'Order not found'
+        message: "Order not found",
       });
     }
 
     res.json({
       success: true,
-      data: order
+      data: order,
     });
-
   } catch (err) {
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch order'
+      message: "Failed to fetch order",
     });
   }
 });
 
-
 // ========================
 // PAYMENT CALLBACK
 // ========================
-router.post('/callback', async (req, res) => {
+router.post("/callback", async (req, res) => {
   const session = await mongoose.startSession();
 
   try {
@@ -463,65 +472,60 @@ router.post('/callback', async (req, res) => {
     const { reference, status, transaction_id } = req.body;
 
     const order = await Order.findOne({
-      $or: [
-        { payment_reference: reference },
-        { _id: reference }
-      ]
+      $or: [{ payment_reference: reference }, { _id: reference }],
     }).session(session);
 
     if (!order) {
       await session.abortTransaction();
-      return res.status(404).json({ message: 'Order not found' });
+      return res.status(404).json({ message: "Order not found" });
     }
 
-    if (status === 'success' || status === 'completed') {
-
-      order.payment_status = 'completed';
-      order.status = 'processing';
+    if (status === "success" || status === "completed") {
+      order.payment_status = "completed";
+      order.status = "processing";
       await order.save({ session });
 
       await Transaction.updateOne(
-        { order_id: order._id, type: 'payment' },
+        { order_id: order._id, type: "payment" },
         {
-          status: 'completed',
+          status: "completed",
           gateway_reference: transaction_id || reference,
-          gateway_response: req.body
+          gateway_response: req.body,
         },
-        { session }
+        { session },
       );
 
       // Delivery
       const product = order.product_snapshot;
 
-      if (product.product_type === 'data_bundle') {
+      if (product.product_type === "data_bundle") {
         const deliveryResult = await moolreService.deliverData({
           network: product.network,
           phone: order.recipient_number,
           size: product.size,
           orderId: order._id,
-          orderNumber: order.order_number
+          orderNumber: order.order_number,
         });
 
-        order.delivery_status = deliveryResult.success ? 'completed' : 'failed';
-        order.status = deliveryResult.success ? 'completed' : 'failed';
+        order.delivery_status = deliveryResult.success ? "completed" : "failed";
+        order.status = deliveryResult.success ? "completed" : "failed";
         order.delivery_reference = deliveryResult.reference;
         order.delivery_response = deliveryResult;
 
         await order.save({ session });
       }
-
     } else {
       order.payment_status = status;
       order.status = status;
       await order.save({ session });
 
       await Transaction.updateOne(
-        { order_id: order._id, type: 'payment' },
+        { order_id: order._id, type: "payment" },
         {
           status,
-          gateway_response: req.body
+          gateway_response: req.body,
         },
-        { session }
+        { session },
       );
     }
 
@@ -529,21 +533,19 @@ router.post('/callback', async (req, res) => {
     session.endSession();
 
     res.json({ success: true });
-
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
 
-    console.error('Callback error:', err);
+    console.error("Callback error:", err);
     res.status(500).json({ success: false });
   }
 });
 
-
 // ========================
 // ADMIN ORDERS LIST
 // ========================
-router.get('/', authMiddleware, async (req, res) => {
+router.get("/", authMiddleware, async (req, res) => {
   try {
     const { page = 1, limit = 20, status, search } = req.query;
 
@@ -555,14 +557,14 @@ router.get('/', authMiddleware, async (req, res) => {
 
     if (search) {
       filter.$or = [
-        { order_number: { $regex: search, $options: 'i' } },
-        { recipient_number: { $regex: search, $options: 'i' } },
-        { payment_number: { $regex: search, $options: 'i' } }
+        { order_number: { $regex: search, $options: "i" } },
+        { recipient_number: { $regex: search, $options: "i" } },
+        { payment_number: { $regex: search, $options: "i" } },
       ];
     }
 
     const orders = await Order.find(filter)
-      .populate('product_id')
+      .populate("product_id")
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
@@ -576,51 +578,48 @@ router.get('/', authMiddleware, async (req, res) => {
         page: parseInt(page),
         limit: parseInt(limit),
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
     });
-
   } catch (err) {
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch orders'
+      message: "Failed to fetch orders",
     });
   }
 });
 
-
 // ========================
 // UPDATE ORDER (ADMIN)
 // ========================
-router.patch('/:id', authMiddleware, async (req, res) => {
+router.patch("/:id", authMiddleware, async (req, res) => {
   try {
     const updated = await Order.findByIdAndUpdate(
       req.params.id,
       {
         $set: {
           ...req.body,
-          updatedAt: new Date()
-        }
+          updatedAt: new Date(),
+        },
       },
-      { new: true }
+      { new: true },
     );
 
     if (!updated) {
       return res.status(404).json({
         success: false,
-        message: 'Order not found'
+        message: "Order not found",
       });
     }
 
     res.json({
       success: true,
-      data: updated
+      data: updated,
     });
-
   } catch (err) {
     res.status(500).json({
       success: false,
-      message: 'Failed to update order'
+      message: "Failed to update order",
     });
   }
 });
