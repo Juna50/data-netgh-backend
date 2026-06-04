@@ -184,7 +184,7 @@ const initiatePayment = async ({
       amount: amount,
       externalref: orderNumber,
       reference: reference,
-      accountnumber: phone,
+      accountnumber: process.env.MOOLRE_ACCOUNT_NO || phone,
     };
 
     const response = await axios.post(
