@@ -79,95 +79,95 @@ const moolreClient = axios.create({
 /**
  * Initiate a mobile money payment collection
  */
-const initiatePayment = async ({
-  amount,
-  phone,
-  network,
-  reference,
-  orderNumber,
-  description,
-}) => {
-  try {
-    // Map network to Moolre channel IDs
-    const channelMap = {
-      MTN: "13",
-      TELECEL: "11",
-      VODAFONE: "11",
-      AIRTELTIGO: "14",
-    };
+// const initiatePayment = async ({
+//   amount,
+//   phone,
+//   network,
+//   reference,
+//   orderNumber,
+//   description,
+// }) => {
+//   try {
+//     // Map network to Moolre channel IDs
+//     const channelMap = {
+//       MTN: "13",
+//       TELECEL: "11",
+//       VODAFONE: "11",
+//       AIRTELTIGO: "14",
+//     };
 
-    const channel =
-      channelMap[network.toUpperCase()] || channelMap.MTN;
+//     const channel =
+//       channelMap[network.toUpperCase()] || channelMap.MTN;
 
-    const payload = {
-      type: 1, // Mobile Money Collection
-      channel,
-      currency: "GHS",
-      payer: "",
-      amount: parseFloat(amount).toFixed(2),
-      externalref: orderNumber,
-      otpcode: "",
-      reference,
-      sessionid: "",
-      accountnumber: phone,
-    };
+//     const payload = {
+//       type: 1, // Mobile Money Collection
+//       channel,
+//       currency: "GHS",
+//       payer: "",
+//       amount: parseFloat(amount).toFixed(2),
+//       externalref: orderNumber,
+//       otpcode: "",
+//       reference,
+//       sessionid: "",
+//       accountnumber: phone,
+//     };
 
-    console.log(
-      `[Moolre] Initiating payment for order ${orderNumber}`
-    );
-    console.log("Payload:", payload);
+//     console.log(
+//       `[Moolre] Initiating payment for order ${orderNumber}`
+//     );
+//     console.log("Payload:", payload);
 
-    const response = await axios.post(
-      "https://api.moolre.com/open/transact/payment",
-      payload,
-      {
-        headers: {
-          "X-API-USER": process.env.MOOLRE_USERNAME,
-          "X-API-PUBKEY": process.env.MOOLRE_PUBLIC_KEY,
-          "Content-Type": "application/json",
-        },
-        timeout: 30000,
-      }
-    );
+//     const response = await axios.post(
+//       "https://api.moolre.com/open/transact/payment",
+//       payload,
+//       {
+//         headers: {
+//           "X-API-USER": process.env.MOOLRE_USERNAME,
+//           "X-API-PUBKEY": process.env.MOOLRE_PUBLIC_KEY,
+//           "Content-Type": "application/json",
+//         },
+//         timeout: 30000,
+//       }
+//     );
 
-    const data = response.data;
+//     const data = response.data;
 
-    console.log("[Moolre] Response:", data);
+//     console.log("[Moolre] Response:", data);
 
-    return {
-      success: true,
-      reference:
-        data.reference ||
-        data.transaction_id ||
-        reference,
-      message:
-        data.message ||
-        "Payment prompt sent to your phone. Please approve.",
-      raw: data,
-    };
-  } catch (err) {
-    console.error("[Moolre] Payment initiation error");
+//     return {
+//       success: true,
+//       reference:
+//         data.reference ||
+//         data.transaction_id ||
+//         reference,
+//       message:
+//         data.message ||
+//         "Payment prompt sent to your phone. Please approve.",
+//       raw: data,
+//     };
+//   } catch (err) {
+//     console.error("[Moolre] Payment initiation error");
 
-    console.error(
-      "Status:",
-      err.response?.status
-    );
+//     console.error(
+//       "Status:",
+//       err.response?.status
+//     );
 
-    console.error(
-      "Response:",
-      err.response?.data
-    );
+//     console.error(
+//       "Response:",
+//       err.response?.data
+//     );
 
-    return {
-      success: false,
-      message:
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        err.message ||
-        "Payment initiation failed",
-    };
-  }
-}
+//     return {
+//       success: false,
+//       message:
+//         err.response?.data?.message ||
+//         err.response?.data?.error ||
+//         err.message ||
+//         "Payment initiation failed",
+//     };
+//   }
+// }
 
 const initiatePayment = async ({
   amount,
