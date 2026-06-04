@@ -53,7 +53,7 @@ const initiatePayment = async ({
         },
       }
     );
-
+    console.error("Moolre :", response.data );
     return {
       success: true,
       reference,
