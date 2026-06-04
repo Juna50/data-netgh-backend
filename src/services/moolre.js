@@ -167,7 +167,7 @@ const initiatePayment = async ({
         "Payment initiation failed",
     };
   }
-}const axios = require("axios");
+}
 
 const initiatePayment = async ({
   amount,
