@@ -12,6 +12,64 @@ const moolreClient = axios.create({
   },
   timeout: 30000,
 });
+const axios = require("axios");
+
+const channelMap = {
+  MTN: "13",
+  TELECEL: "11",
+  AIRTELTIGO: "12",
+};
+
+
+
+const initiatePayment = async ({
+  amount,
+  phone,
+  network,
+  reference,
+  orderNumber,
+}) => {
+  try {
+    const payload = {
+      type: 1,
+      channel: channelMap[network?.toUpperCase()],
+      currency: "GHS",
+      payer: phone,
+      amount: amount,
+      externalref: orderNumber,
+      reference,
+      otpcode: "",
+      sessionid: "",
+      accountnumber: process.env.MOOLRE_ACCOUNT_NO,
+    };
+
+    const response = await axios.post(
+      "https://api.moolre.com/open/transact/payment",
+      payload,
+      {
+        headers: {
+          "X-API-USER": process.env.MOOLRE_USERNAME,
+          "X-API-PUBKEY": process.env.MOOLRE_PUBLIC_KEY,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return {
+      success: true,
+      reference,
+      message: "Payment prompt sent",
+      raw: response.data,
+    };
+  } catch (err) {
+    console.error("Moolre Error:", err.response?.data || err.message);
+
+    return {
+      success: false,
+      message: err.response?.data?.message || err.message,
+    };
+  }
+};
 
 /**
  * Initiate a mobile money payment collection
@@ -169,53 +227,53 @@ const moolreClient = axios.create({
 //   }
 // }
 
-const initiatePayment = async ({
-  amount,
-  phone,
-  network,
-  reference,
-  orderNumber,
-}) => {
-  try {
-    const payload = {
-      type: 1,
-      channel: network === "MTN" ? "13" : "",
-      currency: "GHS",
-      amount: amount,
-      externalref: orderNumber,
-      reference: reference,
-      accountnumber: process.env.MOOLRE_ACCOUNT_NO || phone,
-    };
+// const initiatePayment = async ({
+//   amount,
+//   phone,
+//   network,
+//   reference,
+//   orderNumber,
+// }) => {
+//   try {
+//     const payload = {
+//       type: 1,
+//       channel: network === "MTN" ? "13" : "",
+//       currency: "GHS",
+//       amount: amount,
+//       externalref: orderNumber,
+//       reference: reference,
+//       accountnumber: process.env.MOOLRE_ACCOUNT_NO || phone,
+//     };
 
-    const response = await axios.post(
-      "https://api.moolre.com/open/transact/payment",
-      payload,
-      {
-        headers: {
-          "X-API-USER": process.env.MOOLRE_USERNAME,
-          "X-API-PUBKEY": process.env.MOOLRE_PUBLIC_KEY,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+//     const response = await axios.post(
+//       "https://api.moolre.com/open/transact/payment",
+//       payload,
+//       {
+//         headers: {
+//           "X-API-USER": process.env.MOOLRE_USERNAME,
+//           "X-API-PUBKEY": process.env.MOOLRE_PUBLIC_KEY,
+//           "Content-Type": "application/json",
+//         },
+//       }
+//     );
 
-    return {
-      success: true,
-      reference,
-      message: "Payment prompt sent",
-      raw: response.data,
-    };
-  } catch (err) {
-    console.error(err.response?.data || err.message);
+//     return {
+//       success: true,
+//       reference,
+//       message: "Payment prompt sent",
+//       raw: response.data,
+//     };
+//   } catch (err) {
+//     console.error(err.response?.data || err.message);
 
-    return {
-      success: false,
-      message:
-        err.response?.data?.message ||
-        err.message,
-    };
-  }
-};
+//     return {
+//       success: false,
+//       message:
+//         err.response?.data?.message ||
+//         err.message,
+//     };
+//   }
+// };
 /**
  * Deliver data bundle via Moolre
  */
