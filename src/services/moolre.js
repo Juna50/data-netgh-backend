@@ -167,6 +167,54 @@ const initiatePayment = async ({
         "Payment initiation failed",
     };
   }
+}const axios = require("axios");
+
+const initiatePayment = async ({
+  amount,
+  phone,
+  network,
+  reference,
+  orderNumber,
+}) => {
+  try {
+    const payload = {
+      type: 1,
+      channel: network === "MTN" ? "13" : "",
+      currency: "GHS",
+      amount: amount,
+      externalref: orderNumber,
+      reference: reference,
+      accountnumber: phone,
+    };
+
+    const response = await axios.post(
+      "https://api.moolre.com/open/transact/payment",
+      payload,
+      {
+        headers: {
+          "X-API-USER": process.env.MOOLRE_USERNAME,
+          "X-API-PUBKEY": process.env.MOOLRE_PUBLIC_KEY,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return {
+      success: true,
+      reference,
+      message: "Payment prompt sent",
+      raw: response.data,
+    };
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+
+    return {
+      success: false,
+      message:
+        err.response?.data?.message ||
+        err.message,
+    };
+  }
 };
 /**
  * Deliver data bundle via Moolre
