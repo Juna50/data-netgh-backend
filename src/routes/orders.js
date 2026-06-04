@@ -435,11 +435,53 @@ router.post("/", async (req, res) => {
 // ========================
 // ORDER STATUS
 // ========================
+// router.get("/:id/status", async (req, res) => {
+//   try {
+//     const order = await Order.findOne({
+//       $or: [{ _id: req.params.id }, { order_number: req.params.id }],
+//     }).populate("product_id");
+
+//     if (!order) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Order not found",
+//       });
+//     }
+
+//     res.json({
+//       success: true,
+//       data: order,
+//     });
+//   } catch (err) {
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to fetch order",
+//     });
+//   }
+// });
+const mongoose = require("mongoose");
+
 router.get("/:id/status", async (req, res) => {
   try {
-    const order = await Order.findOne({
-      $or: [{ _id: req.params.id }, { order_number: req.params.id }],
-    }).populate("product_id");
+    const search = req.params.id;
+
+    let query;
+
+    if (mongoose.Types.ObjectId.isValid(search)) {
+      query = {
+        $or: [
+          { _id: search },
+          { order_number: search }
+        ]
+      };
+    } else {
+      query = {
+        order_number: search
+      };
+    }
+
+    const order = await Order.findOne(query)
+      .populate("product_id");
 
     if (!order) {
       return res.status(404).json({
@@ -452,14 +494,16 @@ router.get("/:id/status", async (req, res) => {
       success: true,
       data: order,
     });
+
   } catch (err) {
+    console.error("Order status error:", err);
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch order",
     });
   }
 });
-
 // ========================
 // PAYMENT CALLBACK
 // ========================
