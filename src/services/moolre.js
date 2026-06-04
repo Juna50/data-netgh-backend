@@ -12,7 +12,6 @@ const moolreClient = axios.create({
   },
   timeout: 30000,
 });
-const axios = require("axios");
 
 const channelMap = {
   MTN: "13",
