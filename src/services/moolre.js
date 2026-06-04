@@ -37,8 +37,7 @@ const initiatePayment = async ({
       amount: amount,
       externalref: orderNumber,
       reference,
-      otpcode: "",
-      sessionid: "",
+       sessionid: "",
       accountnumber: process.env.MOOLRE_ACCOUNT_NO,
     };
 
